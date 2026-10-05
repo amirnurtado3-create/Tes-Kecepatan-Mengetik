@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tes Kecepatan Mengetik - Praktikum Statistika</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white p-8 rounded-2xl shadow-lg max-w-3xl w-full">
+    <h1 class="text-2xl font-bold text-center text-slate-800 mb-2">Tes Kecepatan Mengetik</h1>
+    <p class="text-center text-slate-500 mb-6 text-sm">Praktikum Statistika I</p>
+
+    <!-- FORM DATA DIRI -->
+    <div id="section-identity" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+        <input type="text" id="input-nama" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan nama lengkap">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">NIM</label>
+        <input type="text" id="input-nim" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan NIM">
+      </div>
+      <div class="pt-2 flex gap-3">
+        <button onclick="startPractice()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg transition">Coba Percobaan</button>
+        <button onclick="startRealTest()" class="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Mulai Tes Utama</button>
+      </div>
+    </div>
+
+    <!-- AREA TES / PERCOBAAN -->
+    <div id="section-test" class="hidden space-y-4">
+      <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border">
+        <span id="test-mode-badge" class="font-bold text-xs uppercase px-3 py-1 rounded-full bg-amber-100 text-amber-800">Mode Percobaan</span>
+        <div class="text-right">
+          <span class="text-xs text-slate-500">Sisa Waktu:</span>
+          <span id="timer" class="font-mono font-bold text-xl text-blue-600 ml-1">60</span>s
+        </div>
+      </div>
+
+      <div id="text-display" class="p-4 bg-slate-50 border rounded-lg text-slate-700 text-base leading-relaxed select-none font-mono max-h-56 overflow-y-auto"></div>
+
+      <textarea id="text-input" rows="4" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-base" placeholder="Mulai mengetik di sini..." disabled></textarea>
+
+      <div id="practice-actions" class="hidden text-right">
+        <button onclick="finishPractice()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">Lanjut ke Tes Utama</button>
+      </div>
+    </div>
+
+    <!-- HALAMAN SELESAI -->
+    <div id="section-finish" class="hidden text-center py-8 space-y-4">
+      <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+      <h2 class="text-xl font-bold text-slate-800">Tes Berhasil Diselesaikan!</h2>
+      <p class="text-slate-600 text-sm">Terima kasih telah berpartisipasi. Data hasil tes kamu sudah tersimpan otomatis ke sistem kami.</p>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxzoLROb19e3qMASlaDflXoEPOa2uhpNmQ-ZpD6ouYVorKzrxNOgvOlfqtCU3C_UnJ8/exec";
+
+    // TEKS PARAGRAF PRESISI 100 KATA
+    const PRACTICE_TEXT = "statistika merupakan cabang ilmu matematika yang berfokus pada pengumpulan pengolahan serta analisis data kuantitatif guna menarik kesimpulan yang valid dan objektif. pemahaman yang mendalam mengenai konsep dasar analisis data sangat dibutuhkan dalam menyelesaikan berbagai macam permasalahan nyata di lapangan kerja modern. mahasiswa diharapkan mampu memanfaatkan metode kuantitatif secara cermat guna mendukung proses pengambilan keputusan strategis. dalam praktikum ini keterandalan instrumen tes menjadi kunci utama agar variabilitas data yang diperoleh benar benar mencerminkan kemampuan riil dari setiap individu tanpa dipengaruhi oleh faktor luar yang tidak terkontrol sehingga hasil pengujian hipotesis dan estimasi parameter populasi dapat dipertanggungjawabkan secara ilmiah";
+
+    const REAL_TEXT = "perkembangan sektor industri modern saat ini sangat bergantung pada penerapan sistem manajemen kualitas operasional yang terintegrasi secara berkelanjutan. penggunaan berbagai teknik analisis statistik memungkinkan para praktisi industri untuk mengidentifikasi variasi proses produksi secara dini serta meminimalkan potensi kegagalan produk. dengan memanfaatkan metode pengambilan sampel yang presisi organisasi dapat mengoptimalkan efisiensi alokasi sumber daya serta meningkatkan tingkat kepuasan pelanggan secara optimal. pengumpulan data yang akurat dan obyektif merupakan fondasi paling kritis dalam setiap pemodelan kuantitatif guna memastikan bahwa seluruh estimasi serta hasil analisis dapat mencerminkan kondisi riil di lapangan secara tepat konsisten dan valid untuk perencanaan strategis jangka panjang";
+
+    let currentMode = ""; 
+    let timeLeft = 60;
+    let timerInterval = null;
+    let isTestRunning = false;
+    let namaResponden = "";
+    let nimResponden = "";
+
+    window.onload = function() {
+      if (localStorage.getItem("typing_test_completed")) {
+        showFinishSection();
+      }
+    };
+
+    function validateInput() {
+      namaResponden = document.getElementById("input-nama").value.trim();
+      nimResponden = document.getElementById("input-nim").value.trim();
+
+      if (!namaResponden || !nimResponden) {
+        alert("Silakan isi Nama dan NIM terlebih dahulu!");
+        return false;
+      }
+      return true;
+    }
+
+    function startPractice() {
+      if (!validateInput()) return;
+      setupTest("practice", PRACTICE_TEXT, "Mode Percobaan", "bg-amber-100 text-amber-800");
+    }
+
+    function startRealTest() {
+      if (!validateInput()) return;
+      if (confirm("Tes Utama hanya bisa dilakukan SATU KALI. Yakin ingin mulai sekarang?")) {
+        setupTest("real", REAL_TEXT, "Tes Utama (Resmi)", "bg-red-100 text-red-800");
+      }
+    }
+
+    function setupTest(mode, targetText, badgeText, badgeClass) {
+      currentMode = mode;
+      document.getElementById("section-identity").classList.add("hidden");
+      document.getElementById("section-test").classList.remove("hidden");
+
+      const badge = document.getElementById("test-mode-badge");
+      badge.innerText = badgeText;
+      badge.className = `font-bold text-xs uppercase px-3 py-1 rounded-full ${badgeClass}`;
+
+      const textDisplay = document.getElementById("text-display");
+      textDisplay.innerHTML = targetText.split('').map(char => `<span>${char}</span>`).join('');
+
+      const inputArea = document.getElementById("text-input");
+      inputArea.value = "";
+      inputArea.disabled = false;
+      inputArea.focus();
+
+      timeLeft = 60;
+      document.getElementById("timer").innerText = timeLeft;
+      isTestRunning = false;
+
+      inputArea.oninput = function() {
+        if (!isTestRunning) {
+          isTestRunning = true;
+          startTimer();
+        }
+        highlightText(targetText);
+      };
+    }
+
+    function highlightText(targetText) {
+      const inputVal = document.getElementById("text-input").value;
+      const spans = document.getElementById("text-display").querySelectorAll("span");
+
+      spans.forEach((span, idx) => {
+        const char = inputVal[idx];
+        if (char == null) {
+          span.className = "";
+        } else if (char === span.innerText) {
+          span.className = "text-green-600 bg-green-50";
+        } else {
+          span.className = "text-red-600 bg-red-100";
+        }
+      });
+
+      if (inputVal.length >= targetText.length) {
+        endTest();
+      }
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").innerText = timeLeft;
+        if (timeLeft <= 0) {
+          endTest();
+        }
+      }, 1000);
+    }
+
+    function endTest() {
+      clearInterval(timerInterval);
+      const inputArea = document.getElementById("text-input");
+      inputArea.disabled = true;
+
+      const targetText = currentMode === "practice" ? PRACTICE_TEXT : REAL_TEXT;
+      const inputVal = inputArea.value;
+
+      // PERHITUNGAN WPM STANDAR INTERNASIONAL (1 KATA = 5 KARAKTER)
+      const timeSpent = Math.max(1, 60 - timeLeft);
+      const wpm = Math.round((inputVal.length / 5) / (timeSpent / 60));
+
+      let correctChars = 0;
+      for (let i = 0; i < inputVal.length; i++) {
+        if (inputVal[i] === targetText[i]) correctChars++;
+      }
+      const akurasi = inputVal.length > 0 ? Math.round((correctChars / inputVal.length) * 100) : 0;
+
+      if (currentMode === "practice") {
+        alert(`Percobaan Selesai!\nKecepatan: ${wpm} WPM\nAkurasi: ${akurasi}%`);
+        document.getElementById("practice-actions").classList.remove("hidden");
+      } else {
+        sendDataToSheets(wpm, akurasi);
+      }
+    }
+
+    function finishPractice() {
+      document.getElementById("section-test").classList.add("hidden");
+      document.getElementById("practice-actions").classList.add("hidden");
+      document.getElementById("section-identity").classList.remove("hidden");
+    }
+
+    function sendDataToSheets(wpm, akurasi) {
+      const payload = {
+        nama: namaResponden,
+        nim: nimResponden,
+        wpm: wpm,
+        akurasi: akurasi
+      };
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        localStorage.setItem("typing_test_completed", "true");
+        showFinishSection();
+      }).catch(err => {
+        alert("Gagal mengirim data. Silakan coba lagi.");
+      });
+    }
+
+    function showFinishSection() {
+      document.getElementById("section-identity").classList.add("hidden");
+      document.getElementById("section-test").classList.add("hidden");
+      document.getElementById("section-finish").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
